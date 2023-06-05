@@ -18,7 +18,6 @@ model = None
 def get_latest_model(minus=0):
     max_number_model = 0
     for model_path in os.listdir():
-        print(model_path)
         if model_path == "model.pkl":
             if max_number_model < 1:
                 max_number_model = 1
@@ -30,6 +29,19 @@ def get_latest_model(minus=0):
     if max_number_model == 0:
         max_number_model = ''
     return max_number_model
+
+def load_latest_model():
+    global model
+
+    latest_model = get_latest_model(-1)
+    latest_model = int(latest_model) if latest_model != '' else ''
+    if latest_model != None:
+        if latest_model == '':
+            model = joblib.load("model.pkl")
+        elif latest_model >= 0:
+            model = joblib.load("model%s.pkl"%(latest_model))
+        else: model = None
+    else: model = joblib.load("model.pkl")
 
 def train_svm():
     global model
@@ -130,13 +142,6 @@ def test_img_capture():
         k = cv2.waitKey(1)
         if k % 256 == ord("q"):break
         elif k % 256 == 27:break
-            # SPACE pressed
-            # img_name = "test.jpg"
-            # cv2.imwrite(os.path.join('test', img_name), frame)
-            # print("{} written!".format(img_name))
-            # print("Closing now")
-            # img_counter += 1
-            # break
     cam.release()
     cv2.destroyAllWindows()
     window.start_window()
@@ -184,7 +189,6 @@ def train_img_capture():
                 print("Escape hit, closing...")
                 break
             elif k%256 == 32:
-                # SPACE pressed
                 img_name = file_name+"_{}.jpg".format(img_counter)
                 cv2.imwrite(os.path.join("train_data/"+file_name, img_name), frame)
                 print("{} written!".format(img_name))
@@ -194,19 +198,8 @@ def train_img_capture():
 
         cv2.destroyAllWindows()
         window.destroy()
-    
-# def display_name(list_name): 
-#     window=Tk()
-#     label = Label(window, text="Faces Recognized")
-#     listbox = Listbox(window, width=50)
-#     label.pack()
-#     listbox.pack(fill=BOTH, expand=1)  # adds listbox to window
-#     for row in list_name:
-#         listbox.insert(END, row)   # one line for loop
-#     window.mainloop()
 
 def drawRect(frame, faceLoc, names):
-    print(names)
     for (top, right, bottom, left), name in zip (faceLoc, names):
         top -= 15
         right += 2
@@ -233,7 +226,7 @@ class Window:
         self.Llogo = Label(self.window)
         self.Llogo.pack()
         self.Llogo.imgtk = logo
-        self.Llogo.configure(image = logo) 
+        self.Llogo.configure(image = logo)
         
         label = Label(self.window, text='\n',bg="white")
         label.pack()
@@ -269,16 +262,7 @@ class Window:
         self.window.destroy()
 
 if __name__ == "__main__":
-    latest_model = get_latest_model(-1)
-    latest_model = int(latest_model) if latest_model != '' else ''
-    print(latest_model)
-    if latest_model != None:
-        if latest_model == '':
-            model = joblib.load("model.pkl")
-        elif latest_model >= 0:
-            model = joblib.load("model%s.pkl"%(latest_model))
-        else: model = None
-    else: model = joblib.load("model.pkl")
+    load_latest_model()
 
     window = Window()
     window.start_window()
