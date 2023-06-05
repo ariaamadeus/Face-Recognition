@@ -7,7 +7,7 @@ from tkinter import messagebox as mbox
 
 import cv2
 import face_recognition
-from numpy import info, asarray
+from numpy import info, asarray, load
 from sklearn import svm
 import joblib
 import datetime
@@ -18,24 +18,32 @@ model = None
 def get_latest_model(minus=0):
     max_number_model = 0
     for model_path in os.listdir():
+        print(model_path)
         if model_path == "model.pkl":
-            max_number_model = 1
+            if max_number_model < 1:
+                max_number_model = 1
         elif model_path[:5] == "model" and model_path[-4:] == ".pkl":
+            
             if int(model_path[5]) >= max_number_model:
                 max_number_model = int(model_path[5])+1
     max_number_model+=minus
     if max_number_model == 0:
-        max_number_model = None
+        max_number_model = ''
     return max_number_model
 
 def train_svm():
     global model
 
     if not os.path.exists("train_data"):
-        print("Please Capture Some Face First")
+        print("Please Capture Atleast 2 Faces First")
+        return
+    
+    train_dir = os.listdir('train_data/')
+    if len(train_dir) <= 1:
+        print("Please Capture Atleast 2 Faces First")
         return
 
-    print("Training the model...")
+    print(f"Training {len(train_dir)} Faces...")
     # Training the SVC classifier
 
     # The training data would be all the face encodings from all the known images and the labels are their names
@@ -44,8 +52,7 @@ def train_svm():
     names = []
 
     
-    train_dir = os.listdir('train_data/')
-
+    
     for person in train_dir:
         pix = os.listdir("train_data/" + person)
 
@@ -84,6 +91,7 @@ def test_svm(frame):
     # test_image = face_recognition.load_image_file('test/test.jpg')
 
     # Find all the faces in the test image using the default HOG-based model
+    face_encodings = face_recognition.face_encodings(frame)
     face_locations = face_recognition.face_locations(frame)
     num = len(face_locations)
     print("Number of faces detected: ", num)
@@ -92,12 +100,20 @@ def test_svm(frame):
     list_names = []
     print("Found:")
     for i in range(num):
-        test_image_enc = face_recognition.face_encodings(frame)[i]
-        name = model.predict([test_image_enc])
-        print(name)
-    print()
+        test_image_enc = face_encodings[i]
+        if model != None:
+            name = model.predict([test_image_enc])
+        # print(name)
+        list_names.append(*name)
+    frame = drawRect(frame, face_locations, list_names)
+    return frame
 
 def test_img_capture():
+    global model
+
+    if model == None:
+        print("Please Train the Faces First")
+        return
 
     window.destroy()
 
@@ -109,8 +125,8 @@ def test_img_capture():
         if not ret:
             print("failed to grab frame")
             break
+        frame = test_svm(frame)
         cv2.imshow("Face Recognition", frame)
-        test_svm(frame)
         k = cv2.waitKey(1)
         if k % 256 == ord("q"):break
         elif k % 256 == 27:break
@@ -129,6 +145,8 @@ def train_img_capture():
 
     file_name = ''
     file_name = simpledialog.askstring(title="Face Recognition",prompt="What's your Name?:")
+    file_name = file_name.capitalize()
+    
     window = Tk()
     window.withdraw()
     
@@ -177,51 +195,88 @@ def train_img_capture():
         cv2.destroyAllWindows()
         window.destroy()
     
-def display_name(list_name): 
-    window=Tk()
-    label = Label(window, text="Faces Recognized")
-    listbox = Listbox(window, width=50)
-    label.pack()
-    listbox.pack(fill=BOTH, expand=1)  # adds listbox to window
-    for row in list_name:
-        listbox.insert(END, row)   # one line for loop
-    window.mainloop()
+# def display_name(list_name): 
+#     window=Tk()
+#     label = Label(window, text="Faces Recognized")
+#     listbox = Listbox(window, width=50)
+#     label.pack()
+#     listbox.pack(fill=BOTH, expand=1)  # adds listbox to window
+#     for row in list_name:
+#         listbox.insert(END, row)   # one line for loop
+#     window.mainloop()
+
+def drawRect(frame, faceLoc, names):
+    print(names)
+    for (top, right, bottom, left), name in zip (faceLoc, names):
+        top -= 15
+        right += 2
+        bottom += 25
+        left -= 2
+        frame = cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+        frame = cv2.rectangle(frame, (left, bottom -35), (right, bottom), cv2.FILLED)
+        font = cv2.FONT_HERSHEY_DUPLEX
+        frame = cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+    return frame
 
 class Window:
     def start_window(self):
         self.window = Tk()
-        self.window.config(width=300, height=300,padx=20,pady=50)
-        label = Label(
-            self.window, text='WELCOME TO FACE RECOGNITION. SELECT AN OPTION BELOW:\n',font=font.Font(size=16))
+        self.window.config(width=300, height=300,padx=20,pady=50, bg="white")
+        
+        logo = load('.emm.npy')
+        logo = ImageTk.PhotoImage(Image.fromarray(
+            cv2.resize(logo,
+                        (int(logo.shape[1]*0.5),
+                        int(logo.shape[0]*0.5)))
+                                                    ))
+
+        self.Llogo = Label(self.window)
+        self.Llogo.pack()
+        self.Llogo.imgtk = logo
+        self.Llogo.configure(image = logo) 
+        
+        label = Label(self.window, text='\n',bg="white")
         label.pack()
+        label = Label(
+            self.window, text='WELCOME TO FACE RECOGNITION. SELECT AN OPTION BELOW:\n',font=font.Font(size=16),bg="white")
+        label.pack()
+        
         button = Button(self.window, text="Capture",command=train_img_capture,width=20,bg="white",fg="brown",pady=10)
         button['font']=font.Font(size=16)
         button.pack()
-        label = Label(self.window, text='\n')
+        
+        label = Label(self.window, text='\n',bg="white")
         label.pack()
         button = Button(self.window, text="Train",command=train_svm,width=20,bg="white",fg="dark red",pady=10)
         button['font']=font.Font(size=16)
         button.pack()
-        label = Label(self.window, text='\n')
+        
+        label = Label(self.window, text='\n',bg="white")
         label.pack()
         button = Button(self.window, text="Test", command=test_img_capture,width=20,bg="cyan",fg="darkgreen",pady=10)
         button['font']=font.Font(size=16)
         button.pack()
-        label = Label(self.window, text='\n')
+        
+        label = Label(self.window, text='\n',bg="white")
         label.pack()
         button = Button(self.window, text="Quit", command=lambda:exit(),width=20,bg="Red",fg="White",pady=10)
         button['font']=font.Font(size=16)
         button.pack()
+        
         self.window.mainloop()
     
     def destroy(self):
         self.window.destroy()
 
 if __name__ == "__main__":
-
-    if get_latest_model(-1) != None:
-        if get_latest_model(-1) >= 0:
-            model = joblib.load("model%s.pkl"%(get_latest_model(-1)))
+    latest_model = get_latest_model(-1)
+    latest_model = int(latest_model) if latest_model != '' else ''
+    print(latest_model)
+    if latest_model != None:
+        if latest_model == '':
+            model = joblib.load("model.pkl")
+        elif latest_model >= 0:
+            model = joblib.load("model%s.pkl"%(latest_model))
         else: model = None
     else: model = joblib.load("model.pkl")
 
