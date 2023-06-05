@@ -1,17 +1,18 @@
 import os
-from tkinter import *
-import tkinter.font as font
-import tkinter.simpledialog as simpledialog
-from PIL import Image, ImageTk
-from tkinter import messagebox as mbox
-
-import cv2
-import face_recognition
-from numpy import info, asarray, load
-from sklearn import svm
 import joblib
 import datetime
 import time
+import cv2
+import numpy as np
+
+import tkinter as tk
+import tkinter.font as font
+import tkinter.simpledialog as simpledialog
+from PIL import Image, ImageTk
+
+import face_recognition
+from sklearn import svm
+
 
 model = None
 
@@ -152,7 +153,7 @@ def train_img_capture():
     file_name = simpledialog.askstring(title="Face Recognition",prompt="What's your Name?:")
     file_name = file_name.capitalize()
     
-    window = Tk()
+    window = tk.Tk()
     window.withdraw()
     
     if file_name != None and file_name != '':
@@ -213,46 +214,46 @@ def drawRect(frame, faceLoc, names):
 
 class Window:
     def start_window(self):
-        self.window = Tk()
+        self.window = tk.Tk()
         self.window.config(width=300, height=300,padx=20,pady=50, bg="white")
         
-        logo = load('.emm.npy')
+        logo = np.load('.emm.npy')
         logo = ImageTk.PhotoImage(Image.fromarray(
             cv2.resize(logo,
                         (int(logo.shape[1]*0.5),
                         int(logo.shape[0]*0.5)))
                                                     ))
 
-        self.Llogo = Label(self.window)
+        self.Llogo = tk.Label(self.window)
         self.Llogo.pack()
         self.Llogo.imgtk = logo
         self.Llogo.configure(image = logo)
         
-        label = Label(self.window, text='\n',bg="white")
+        label = tk.Label(self.window, text='\n',bg="white")
         label.pack()
-        label = Label(
+        label = tk.Label(
             self.window, text='WELCOME TO FACE RECOGNITION. SELECT AN OPTION BELOW:\n',font=font.Font(size=16),bg="white")
         label.pack()
         
-        button = Button(self.window, text="Capture",command=train_img_capture,width=20,bg="white",fg="brown",pady=10)
+        button = tk.Button(self.window, text="Capture",command=train_img_capture,width=20,bg="white",fg="brown",pady=10)
         button['font']=font.Font(size=16)
         button.pack()
         
-        label = Label(self.window, text='\n',bg="white")
+        label = tk.Label(self.window, text='\n',bg="white")
         label.pack()
-        button = Button(self.window, text="Train",command=train_svm,width=20,bg="white",fg="dark red",pady=10)
+        button = tk.Button(self.window, text="Train",command=train_svm,width=20,bg="white",fg="dark red",pady=10)
         button['font']=font.Font(size=16)
         button.pack()
         
-        label = Label(self.window, text='\n',bg="white")
+        label = tk.Label(self.window, text='\n',bg="white")
         label.pack()
-        button = Button(self.window, text="Test", command=test_img_capture,width=20,bg="cyan",fg="darkgreen",pady=10)
+        button = tk.Button(self.window, text="Test", command=test_img_capture,width=20,bg="cyan",fg="darkgreen",pady=10)
         button['font']=font.Font(size=16)
         button.pack()
         
-        label = Label(self.window, text='\n',bg="white")
+        label = tk.Label(self.window, text='\n',bg="white")
         label.pack()
-        button = Button(self.window, text="Quit", command=lambda:exit(),width=20,bg="Red",fg="White",pady=10)
+        button = tk.Button(self.window, text="Quit", command=lambda:exit(),width=20,bg="Red",fg="White",pady=10)
         button['font']=font.Font(size=16)
         button.pack()
         
